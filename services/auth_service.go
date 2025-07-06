@@ -10,20 +10,21 @@ import (
 
 	"loyalty-core/config"
 	"loyalty-core/models"
+	"loyalty-core/storage"
 	"loyalty-core/utils"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthService struct {
-	config *config.Config
-	users  map[string]*models.User // In-memory storage for demo purposes
+	config      *config.Config
+	userStorage *storage.UserStorage
 }
 
 func NewAuthService(cfg *config.Config) *AuthService {
 	return &AuthService{
-		config: cfg,
-		users:  make(map[string]*models.User),
+		config:      cfg,
+		userStorage: storage.GetGlobalUserStorage(),
 	}
 }
 
@@ -85,10 +86,8 @@ func (as *AuthService) SignupUser(req models.SignupRequest) (*models.SignupRespo
 	}
 
 	// Check if user already exists
-	for _, user := range as.users {
-		if user.Email == req.Email {
-			return nil, errors.New("user already exists")
-		}
+	if _, err := as.userStorage.GetUserByEmail(req.Email); err == nil {
+		return nil, errors.New("user already exists")
 	}
 
 	// Hash password
@@ -111,8 +110,10 @@ func (as *AuthService) SignupUser(req models.SignupRequest) (*models.SignupRespo
 		UpdatedAt: time.Now(),
 	}
 
-	// Save user (in-memory for demo)
-	as.users[user.ID] = user
+	// Save user (using shared storage)
+	if err := as.userStorage.CreateUser(user); err != nil {
+		return nil, err
+	}
 
 	// Create response (exclude password)
 	responseUser := *user
@@ -135,15 +136,8 @@ func (as *AuthService) LoginUser(req models.LoginRequest) (*models.LoginResponse
 	}
 
 	// Find user by email
-	var foundUser *models.User
-	for _, user := range as.users {
-		if user.Email == req.Email {
-			foundUser = user
-			break
-		}
-	}
-
-	if foundUser == nil {
+	foundUser, err := as.userStorage.GetUserByEmail(req.Email)
+	if err != nil {
 		return nil, errors.New("invalid credentials")
 	}
 
@@ -171,4 +165,28 @@ func (as *AuthService) LoginUser(req models.LoginRequest) (*models.LoginResponse
 
 	log.Printf("User logged in: %s", foundUser.Email)
 	return response, nil
+}
+
+// GetAllUsers returns all users (for testing purposes)
+func (as *AuthService) GetAllUsers() map[string]*models.User {
+	return as.userStorage.GetAllUsers()
+}
+
+// ValidateToken validates JWT token and returns user claims
+func (as *AuthService) ValidateToken(tokenString string) (*utils.Claims, error) {
+	return utils.ValidateToken(tokenString, as.config.JWTSecret)
+}
+
+// GetUserProfile retrieves user profile by user ID
+func (as *AuthService) GetUserProfile(userID string) (*models.User, error) {
+	user, err := as.userStorage.GetUserByID(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create response (exclude password)
+	responseUser := *user
+	responseUser.Password = ""
+
+	return &responseUser, nil
 }
