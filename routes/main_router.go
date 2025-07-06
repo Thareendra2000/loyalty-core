@@ -9,20 +9,25 @@ import (
 )
 
 type MainRouter struct {
-	cfg        *config.Config
-	authRoutes *AuthRoutes
+	cfg           *config.Config
+	authRoutes    *AuthRoutes
+	loyaltyRoutes *LoyaltyRoutes
 }
 
 func NewMainRouter(cfg *config.Config) *MainRouter {
 	return &MainRouter{
-		cfg:        cfg,
-		authRoutes: NewAuthRoutes(cfg),
+		cfg:           cfg,
+		authRoutes:    NewAuthRoutes(cfg),
+		loyaltyRoutes: NewLoyaltyRoutes(cfg),
 	}
 }
 
 func (mr *MainRouter) RegisterAllRoutes() {
 	// Register auth routes
 	mr.authRoutes.RegisterRoutes()
+
+	// Register loyalty routes
+	mr.loyaltyRoutes.RegisterRoutes()
 
 	// Register general routes
 	mr.registerGeneralRoutes()
@@ -71,6 +76,12 @@ func (mr *MainRouter) registerGeneralRoutes() {
 				"signup":  "POST /api/auth/signup",
 				"login":   "POST /api/auth/login",
 				"profile": "GET /api/auth/profile",
+			},
+			"loyalty": map[string]string{
+				"earn":    "POST /api/loyalty/earn",
+				"redeem":  "POST /api/loyalty/redeem",
+				"balance": "GET /api/loyalty/balance",
+				"history": "GET /api/loyalty/history",
 			},
 			"general": map[string]string{
 				"health": "GET /health",
