@@ -14,7 +14,7 @@ import (
 )
 
 func createDemoData(cfg *config.Config) {
-	fmt.Println("🎯 Creating demo data...")
+	fmt.Println("Creating demo data...")
 	
 	// Create auth service to add demo user
 	authService := services.NewAuthService(cfg)
@@ -31,17 +31,17 @@ func createDemoData(cfg *config.Config) {
 	response, err := authService.SignupUser(demoUser)
 	if err != nil {
 		if err.Error() == "user already exists" {
-			fmt.Println("✅ Demo user already exists")
+			fmt.Println("Demo user already exists")
 		} else {
 			fmt.Printf("⚠️  Failed to create demo user: %v\n", err)
 		}
 	} else {
-		fmt.Println("✅ Demo user created successfully")
+		fmt.Println("Demo user created successfully")
 		fmt.Printf("   Email: %s\n", response.User.Email)
 		fmt.Printf("   Name: %s %s\n", response.User.FirstName, response.User.LastName)
 	}
 	
-	fmt.Println("\n📋 Demo Login Credentials:")
+	fmt.Println("\nDemo Login Credentials:")
 	fmt.Println("   Email: demo@loyalty.com")
 	fmt.Println("   Password: password123")
 	fmt.Println()
